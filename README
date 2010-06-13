@@ -1,0 +1,57 @@
+1. Add the following lines somewhere near the other module definitions (around line 250) in file src/Makefile.am:
+
+  lib_LTLIBRARIES += mod_mysql_accesslog.la
+  mod_mysql_accesslog_la_SOURCES = mod_mysql_accesslog.c
+  mod_mysql_accesslog_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
+  mod_mysql_accesslog_la_LIBADD = $(MYSQL_LIBS) $(common_libadd)
+  mod_mysql_accesslog_la_CPPFLAGS = $(MYSQL_INCLUDE)
+
+2. Copy mod_mysql_accesslog.c into the src directory.
+
+3. Run the following commands in the base directory of lighttpd:
+
+./configure --with-mysql ...
+make clean
+make
+make install
+
+4. Create the database table
+
+CREATE TABLE accesslog (
+  remote_host int(10) unsigned,
+  remote_user varchar(2048),
+  timestamp int(10) unsigned,
+  request_line varchar(2048),
+  status smallint(5) unsigned,
+  bytes_body int(10) unsigned,
+  header varchar(2048),
+  environment varchar(2048),
+  filename varchar(2048),
+  request_protocol enum('VERSION_1_0','VERSION_1_1'),
+  request_method enum('GET','POST','HEAD','OPTIONS','PROPFIND','MKCOL','PUT','DELETE','COPY','MOVE','PROPPATCH','REPORT','CHECKOUT','CHECKIN','VERSION_CONTROL','UNCHECKOUT','MKACTIVITY','MERGE','LOCK','UNLOCK','LABEL','CONNECT'),
+  server_port smallint(5) unsigned,
+  query_string varchar(2048),
+  time_used smallint(5) unsigned,
+  url varchar(2048),
+  server_name varchar(2048),
+  http_host varchar(2048),
+  keep_alive tinyint(3) unsigned,
+  bytes_in int(10) unsigned,
+  bytes_out int(10) unsigned,
+  response_header varchar(2048)
+)
+
+5. Apply the following configuration to your lighttpd.conf
+
+# MySQL Accesslog authentification
+mysql-accesslog.user = "peter"
+mysql-accesslog.pass = "secret"
+
+# MySQL database
+mysql-accesslog.data = "pipe"
+# MySQL socket or host
+mysql-accesslog.sock = "/tmp/mysql.sock"
+#mysql-accesslog.host = "192.168.10.100"
+
+# MySQL query to be executed
+mysql-accesslog.query = "INSERT INTO accesslog SET remote_host=%h timestamp=%t, status=%s, header=%{User-Agent}i, query_string=%q, url=%U"
